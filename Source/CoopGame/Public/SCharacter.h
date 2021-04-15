@@ -29,9 +29,15 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// Movement
 	void MoveForward(float Value);
 
 	void MoveRight(float Value);
+
+	// Crouching
+	void BeginCrouch();
+
+	void EndCrouch();
 
 public:	
 	// Called every frame
