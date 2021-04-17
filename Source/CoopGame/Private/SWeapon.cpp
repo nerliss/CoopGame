@@ -7,6 +7,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "CoopGame/CoopGame.h"
 
 // Draw debug linetrace for weapon
 static int32 DebugWeaponDrawing = 0;
@@ -45,21 +47,37 @@ void ASWeapon::Fire()
 		CQP.AddIgnoredActor(MyOwner); // ignore character
 		CQP.AddIgnoredActor(this); // ignore weapon
 		CQP.bTraceComplex = true; // gets exact result of hit result, using complex collision
+		CQP.bReturnPhysicalMaterial = true; // returns physical material
 
 		// Particle "Target" parameter
 		FVector TracerEndPoint = TraceEnd;
 
 		FHitResult Hit;
-		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, ECC_Visibility, CQP))
+		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISION_WEAPON, CQP))
 		{
 			// Blocking hit process damage
 			AActor* HitActor = Hit.GetActor();
 
 			UGameplayStatics::ApplyPointDamage(HitActor, 20.f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
-			if (ImpactFX)
+			// Surface type switch statement - applies different FX based on Hit surface type
+			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+
+			UParticleSystem* SelectedEffect = nullptr;
+			switch (SurfaceType)
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactFX, Hit.ImpactPoint, Hit.ImpactNormal.Rotation()); // spawn impact emitter once hit is done
+			case SURFACE_FLESHDEFAULT:
+			case SURFACE_FLESHVULNEREBLE:
+				SelectedEffect = FleshImpactFX;
+				break;
+			default:
+				SelectedEffect = DefaultImpactFX;
+				break;
+			}
+
+			if (SelectedEffect)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation()); // spawn impact emitter once hit is done
 			}
 
 			TracerEndPoint = Hit.ImpactPoint;
@@ -89,6 +107,17 @@ void ASWeapon::PlayFireFX(FVector TraceEnd)
 		if (TracerComp)
 		{
 			TracerComp->SetVectorParameter(TracerTargetName, TraceEnd);
+		}
+	}
+
+	// Play camera shake effect
+	APawn* MyOwner = Cast<APawn>(GetOwner());
+	if (MyOwner)
+	{
+		APlayerController* PlayerController = Cast<APlayerController>(MyOwner->GetController());
+		if (PlayerController)
+		{
+			PlayerController->ClientPlayCameraShake(FireCamShake);
 		}
 	}
 }
