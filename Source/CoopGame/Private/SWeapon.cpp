@@ -54,7 +54,6 @@ void ASWeapon::Fire()
 		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, ECC_Visibility, CQP))
 		{
 			// Blocking hit process damage
-
 			AActor* HitActor = Hit.GetActor();
 
 			UGameplayStatics::ApplyPointDamage(HitActor, 20.f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
@@ -71,11 +70,12 @@ void ASWeapon::Fire()
 		
 		if (MuzzleFX)
 		{
-			UGameplayStatics::SpawnEmitterAttached(MuzzleFX, MeshComp, MuzzleSocketName); // spawn muzzle emitter once shot fired
+			UGameplayStatics::SpawnEmitterAttached(MuzzleFX, MeshComp, MuzzleSocketName); // spawn muzzle emitter once shot is fired
 		}
 
 		FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
 
+		// Spawn trace emitter once shot is fired
 		if (TracerFX)
 		{
 			UParticleSystemComponent* TracerComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerFX, MuzzleLocation);
