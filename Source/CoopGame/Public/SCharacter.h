@@ -8,6 +8,7 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class ASWeapon;
 
 UCLASS()
 class COOPGAME_API ASCharacter : public ACharacter
@@ -38,6 +39,33 @@ protected:
 	void BeginCrouch();
 
 	void EndCrouch();
+
+	// Weapon zoom
+	bool bWantsToZoom;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	float ZoomedFOV;
+
+	// Interpolation speed
+	UPROPERTY(EditDefaultsOnly, Category = "Player", meta = (ClampMin = 0.1, ClampMax = 100)) // meta tag is used for progress bar UI element that allows to change the value in BP
+	float ZoomInterpSpeed;
+
+	float DefaultFOV; // set during begin play
+
+	void BeginZoom();
+
+	void EndZoom();
+
+	// Fire
+	ASWeapon* CurrentWeapon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	TSubclassOf<ASWeapon> StarterWeaponClass;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
+	FName WeaponAttachSocketName;
+
+	void Fire();
 
 public:	
 	// Called every frame
