@@ -41,7 +41,7 @@ void ASWeapon::Fire()
 
 		FVector ShotDirection = EyeRotation.Vector();
 
-		FVector TraceEnd = EyeLocation + (ShotDirection * 10000);
+		FVector TraceEnd = EyeLocation + (ShotDirection * 11000);
 
 		FCollisionQueryParams CQP;
 		CQP.AddIgnoredActor(MyOwner); // ignore character
