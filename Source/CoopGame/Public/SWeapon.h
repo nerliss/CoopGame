@@ -21,6 +21,8 @@ public:
 
 protected:
 
+	virtual void BeginPlay() override;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MeshComp;
 
@@ -57,10 +59,28 @@ protected:
 	// Camera shake 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<UCameraShake> FireCamShake;
+
+	// Weapon damage
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float BaseDamage;
 	
+	virtual void Fire();
+
+	FTimerHandle TimerHandle_TimeBetweenShots;
+
+	float LastFireTime;
+
+	// Bullets per minutes fired
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float FireRate;
+
+	// Derive from FireRate
+	float TimeBetweenShots;
+
 public:
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual void Fire();
+	void StartFire();
+
+	void StopFire();
 
 };

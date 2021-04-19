@@ -9,6 +9,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "CoopGame/CoopGame.h"
+#include "TimerManager.h"
 
 // Draw debug linetrace for weapon
 static int32 DebugWeaponDrawing = 0;
@@ -27,6 +28,17 @@ ASWeapon::ASWeapon()
 
 	MuzzleSocketName = "MuzzleSocket";
 	TracerTargetName = "Target";
+
+	BaseDamage = 20.f;
+
+	FireRate = 600;
+}
+
+void ASWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+
+	TimeBetweenShots = 60 / FireRate; // convert FireRate to timed version
 }
 
 void ASWeapon::Fire()
@@ -58,16 +70,24 @@ void ASWeapon::Fire()
 			// Blocking hit process damage
 			AActor* HitActor = Hit.GetActor();
 
-			UGameplayStatics::ApplyPointDamage(HitActor, 20.f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
-
-			// Surface type switch statement - applies different FX based on Hit surface type
 			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 
+			// Headshot bonus damage
+			float ActualDamage = BaseDamage;
+			if (SurfaceType == SURFACE_FLESHVULNERABLE)
+			{
+				ActualDamage *= 4.f;
+			}
+
+			// Apply damage
+			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType); 
+
+			// Surface type switch statement - applies different FX based on Hit surface type
 			UParticleSystem* SelectedEffect = nullptr;
 			switch (SurfaceType)
 			{
 			case SURFACE_FLESHDEFAULT:
-			case SURFACE_FLESHVULNEREBLE:
+			case SURFACE_FLESHVULNERABLE:
 				SelectedEffect = FleshImpactFX;
 				break;
 			default:
@@ -83,12 +103,29 @@ void ASWeapon::Fire()
 			TracerEndPoint = Hit.ImpactPoint;
 		}
 
+		// CVARDebugWeaponDrawing
 		if (DebugWeaponDrawing > 0)
 		{
 			DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.f, 0, 1.f);
 		}
 		PlayFireFX(TracerEndPoint);
+
+		LastFireTime = GetWorld()->TimeSeconds;
 	}
+}
+
+void ASWeapon::StartFire()
+{
+	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.f); // use FMath::Max not to allow FirstDelay be less than 0
+
+	GetWorldTimerManager().SetTimer(TimerHandle_TimeBetweenShots, this, &ASWeapon::Fire, TimeBetweenShots, true, FirstDelay);
+	
+	Fire();
+}
+
+void ASWeapon::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_TimeBetweenShots);
 }
 
 void ASWeapon::PlayFireFX(FVector TraceEnd)
