@@ -10,6 +10,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "CoopGame/CoopGame.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 
 // Draw debug linetrace for weapon
 static int32 DebugWeaponDrawing = 0;
@@ -35,6 +36,10 @@ ASWeapon::ASWeapon()
 
 	// Set the replication of the rifle to true to properly synchronize between server and client
 	SetReplicates(true);
+
+	// Actor network tick
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 }
 
 void ASWeapon::BeginPlay()
@@ -47,6 +52,12 @@ void ASWeapon::BeginPlay()
 void ASWeapon::Fire()
 {
 	// Line trace the world from camera position to crosshair location
+
+	if (GetLocalRole() < ROLE_Authority)
+	{
+		ServerFire();
+	}
+
 	AActor* MyOwner = GetOwner();
 	if (MyOwner)
 	{
@@ -67,13 +78,15 @@ void ASWeapon::Fire()
 		// Particle "Target" parameter
 		FVector TracerEndPoint = TraceEnd;
 
+		EPhysicalSurface SurfaceType = SurfaceType_Default;
+
 		FHitResult Hit;
 		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISION_WEAPON, CQP))
 		{
 			// Blocking hit process damage
 			AActor* HitActor = Hit.GetActor();
 
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+			SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 
 			// Headshot bonus damage
 			float ActualDamage = BaseDamage;
@@ -85,25 +98,10 @@ void ASWeapon::Fire()
 			// Apply damage
 			UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType); 
 
-			// Surface type switch statement - applies different FX based on Hit surface type
-			UParticleSystem* SelectedEffect = nullptr;
-			switch (SurfaceType)
-			{
-			case SURFACE_FLESHDEFAULT:
-			case SURFACE_FLESHVULNERABLE:
-				SelectedEffect = FleshImpactFX;
-				break;
-			default:
-				SelectedEffect = DefaultImpactFX;
-				break;
-			}
-
-			if (SelectedEffect)
-			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation()); // spawn impact emitter once hit is done
-			}
+			PlayImpactFX(SurfaceType, Hit.ImpactPoint);
 
 			TracerEndPoint = Hit.ImpactPoint;
+
 		}
 
 		// CVARDebugWeaponDrawing
@@ -111,15 +109,42 @@ void ASWeapon::Fire()
 		{
 			DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.f, 0, 1.f);
 		}
+
 		PlayFireFX(TracerEndPoint);
+
+		// Update replication of cosmetic FX for clients on server
+		if (GetLocalRole() == ROLE_Authority)
+		{
+			HitScanTrace.TraceTo = TracerEndPoint;
+			HitScanTrace.SurfaceType = SurfaceType;
+			HitScanTrace.Seed = (HitScanTrace.Seed + 1) % 3;
+		}
 
 		LastFireTime = GetWorld()->TimeSeconds;
 	}
 }
 
+void ASWeapon::ServerFire_Implementation()
+{
+	Fire();
+}
+
+bool ASWeapon::ServerFire_Validate()
+{
+	return true;
+}
+
+void ASWeapon::OnRep_HitScanTrace()
+{
+	// Play cosmetic FX
+	PlayFireFX(HitScanTrace.TraceTo);
+
+	PlayImpactFX(HitScanTrace.SurfaceType, HitScanTrace.TraceTo);
+}
+
 void ASWeapon::StartFire()
 {
-	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.f); // use FMath::Max not to allow FirstDelay be less than 0
+	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f); // use FMath::Max not to allow FirstDelay be less than 0
 
 	GetWorldTimerManager().SetTimer(TimerHandle_TimeBetweenShots, this, &ASWeapon::Fire, TimeBetweenShots, true, FirstDelay);
 	
@@ -160,4 +185,38 @@ void ASWeapon::PlayFireFX(FVector TraceEnd)
 			PlayerController->ClientPlayCameraShake(FireCamShake);
 		}
 	}
+}
+
+void ASWeapon::PlayImpactFX(EPhysicalSurface SurfaceType, FVector ImpactPoint)
+{
+	// Surface type switch statement - applies different FX based on Hit surface type
+	UParticleSystem* SelectedEffect = nullptr;
+	switch (SurfaceType)
+	{
+	case SURFACE_FLESHDEFAULT:
+	case SURFACE_FLESHVULNERABLE:
+		SelectedEffect = FleshImpactFX;
+		break;
+	default:
+		SelectedEffect = DefaultImpactFX;
+		break;
+	}
+
+	if (SelectedEffect)
+	{
+		FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
+
+		FVector ShotDirection = ImpactPoint - MuzzleLocation;
+		ShotDirection.Normalize();
+
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, ImpactPoint, ShotDirection.Rotation()); // spawn impact emitter once hit is done
+	}
+}
+
+// Replication rule for HitScanTrace structure
+void ASWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ASWeapon, HitScanTrace, COND_SkipOwner); // replicate to everyone but owner
 }
