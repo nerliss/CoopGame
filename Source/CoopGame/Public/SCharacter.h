@@ -61,6 +61,7 @@ protected:
 	void EndZoom();
 
 	// Fire
+	UPROPERTY(Replicated)
 	ASWeapon* CurrentWeapon;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player")

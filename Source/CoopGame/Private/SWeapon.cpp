@@ -32,6 +32,9 @@ ASWeapon::ASWeapon()
 	BaseDamage = 20.f;
 
 	FireRate = 600;
+
+	// Set the replication of the rifle to true to properly synchronize between server and client
+	SetReplicates(true);
 }
 
 void ASWeapon::BeginPlay()
