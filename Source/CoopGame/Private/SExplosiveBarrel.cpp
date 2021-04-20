@@ -2,26 +2,59 @@
 
 
 #include "SExplosiveBarrel.h"
+#include "Components/SHealthComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "PhysicsEngine/RadialForceComponent.h"
 
 // Sets default values
 ASExplosiveBarrel::ASExplosiveBarrel()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+    HealthComp = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComp"));
+    HealthComp->OnHealthChanged.AddDynamic(this, &ASExplosiveBarrel::OnHealthChanged);
 
+    MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
+    MeshComp->SetSimulatePhysics(true);
+    MeshComp->SetCollisionObjectType(ECC_PhysicsBody); // radial component now affects barrel 
+    RootComponent = MeshComp;
+
+    RadialForceComp = CreateDefaultSubobject<URadialForceComponent>(TEXT("RadialForceComp"));
+    RadialForceComp->SetupAttachment(MeshComp);
+    RadialForceComp->Radius = 250.f;
+    RadialForceComp->bImpulseVelChange = true;
+    RadialForceComp->bAutoActivate = false; // prevent component from ticking, activate only on FireImpulse()
+    RadialForceComp->bIgnoreOwningActor = true;
+
+    ExplosionImpulse = 400.f;
+    ExpDamage = 120.f;
+    ExpRadius = 500.f;
 }
 
-// Called when the game starts or when spawned
-void ASExplosiveBarrel::BeginPlay()
+void ASExplosiveBarrel::OnHealthChanged(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
-	Super::BeginPlay();
-	
+    if (bExploded)
+    {
+        return;
+    }
+
+    // Explosion
+    if (Health <= 0.f)
+    {
+        bExploded = true;
+
+        // Boost the barrel up
+        FVector BoostIntensity = FVector::UpVector * ExplosionImpulse;
+        MeshComp->AddImpulse(BoostIntensity, NAME_None, true);
+
+        // Play FX and change material
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionFX, GetActorLocation());
+        MeshComp->SetMaterial(0, ExplodedMaterial);
+
+        // Blast away nearby physics actors
+        RadialForceComp->FireImpulse();
+
+        // Apply radial damage
+		TArray<AActor*> IgnoredActors;
+		IgnoredActors.Add(this);
+		UGameplayStatics::ApplyRadialDamage(GetWorld(), ExpDamage, GetActorLocation(), ExpRadius, RadialDamageType, IgnoredActors, this, GetInstigatorController(), true, ECC_Visibility);
+    }
 }
-
-// Called every frame
-void ASExplosiveBarrel::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-

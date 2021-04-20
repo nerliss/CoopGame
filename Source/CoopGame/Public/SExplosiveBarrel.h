@@ -6,6 +6,11 @@
 #include "GameFramework/Actor.h"
 #include "SExplosiveBarrel.generated.h"
 
+class USHealthComponent;
+class UStaticMeshComponent;
+class URadialForceComponent;
+class UParticleSystem;
+
 UCLASS()
 class COOPGAME_API ASExplosiveBarrel : public AActor
 {
@@ -16,11 +21,43 @@ public:
 	ASExplosiveBarrel();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	USHealthComponent* HealthComp;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UStaticMeshComponent* MeshComp;
+
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	URadialForceComponent* RadialForceComp;
+
+	UFUNCTION()
+	void OnHealthChanged(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+	bool bExploded;
+
+	/* Declare the damage type */
+	UPROPERTY(EditDefaultsOnly, Category = "RadialDamage")
+	TSubclassOf<class UDamageType> RadialDamageType;
+
+	/* Explosion damage */
+	UPROPERTY(EditDefaultsOnly, Category = "RadialDamage")
+	float ExpDamage;
+
+	/* Explosion radius */
+	UPROPERTY(EditDefaultsOnly, Category = "RadialDamage")
+	float ExpRadius;
+
+	/* The impulse applied to barrel mesh that boosts it up a little once exploded */
+	UPROPERTY(EditDefaultsOnly, Category = "FX")
+	float ExplosionImpulse;
+
+	/* The particle to play at zero HP */
+	UPROPERTY(EditDefaultsOnly, Category = "FX")
+	UParticleSystem* ExplosionFX;
+
+	/* The material to replace the original one after the explosion */
+	UPROPERTY(EditDefaultsOnly, Category = "FX")
+	UMaterialInterface* ExplodedMaterial;
 
 };
