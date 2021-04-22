@@ -23,6 +23,7 @@ ASTrackerBot::ASTrackerBot()
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 	MeshComp->SetCanEverAffectNavigation(false);
 	MeshComp->SetSimulatePhysics(true);
+	MeshComp->SetCollisionProfileName("PhysicsActor");
 	RootComponent = MeshComp;
 
 	HealthComp = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComp"));
@@ -54,6 +55,9 @@ void ASTrackerBot::BeginPlay()
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		NextPathPoint = GetNextPathPoint();
+
+		FTimerHandle TimerHandle_CheckPowerLevel;
+		GetWorldTimerManager().SetTimer(TimerHandle_CheckPowerLevel, this, &ASTrackerBot::OnCheckNearbyBots, 1.f, true);
 	}
 
 }
@@ -111,16 +115,19 @@ void ASTrackerBot::SelfDestruct()
 	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
 
 	MeshComp->SetVisibility(false, true);
-	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComp->SetSimulatePhysics(false);
+	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		TArray<AActor*> IgnoredActors;
 		IgnoredActors.Add(this);
 
+		// Increase damage based on the power level
+		float ActualDamage = ExplosionDamage + (ExplosionDamage * PowerLevel);
+
 		// Apply damage
-		UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoredActors, this, GetInstigatorController(), true);
+		UGameplayStatics::ApplyRadialDamage(this, ActualDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoredActors, this, GetInstigatorController(), true);
 
 		DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 12, FColor::Red, false, 2.f, 0, 1);
 
@@ -132,6 +139,62 @@ void ASTrackerBot::SelfDestruct()
 void ASTrackerBot::DamageSelf()
 {
 	UGameplayStatics::ApplyDamage(this, 20, GetInstigatorController(), this, nullptr);
+}
+
+void ASTrackerBot::OnCheckNearbyBots()
+{
+	const float Radius = 600.f;
+
+	// Temporary collision shape
+	FCollisionShape CollShape;
+	CollShape.SetSphere(Radius);
+
+	// Only find pawns
+	FCollisionObjectQueryParams QueryParams;
+
+	QueryParams.AddObjectTypesToQuery(ECC_PhysicsBody);
+	QueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	
+	TArray<FOverlapResult> Overlaps;
+	GetWorld()->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity, QueryParams, CollShape);
+
+	DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 12, FColor::White, false, 1.f);
+
+	int32 NumOfBots = 0;
+
+	// Loop over the results using a "range based for loop"
+	for (FOverlapResult Result : Overlaps)
+	{
+		// Check if overlapped with another tracker bot
+		ASTrackerBot* Bot = Cast<ASTrackerBot>(Result.GetActor());
+
+		// Ignore this instance of a bot
+		if (Bot && Bot != this)
+		{
+			NumOfBots++;
+		}
+	}
+
+	const int32 MaxPowerLevel = 4;
+
+	// Clamp between min and max
+	PowerLevel = FMath::Clamp(NumOfBots, 0, MaxPowerLevel);
+
+	// Update the material color
+	if (MatInst == nullptr)
+	{
+		MatInst = MeshComp->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComp->GetMaterial(0));
+	}
+
+	if (MatInst)
+	{
+		// Convert to a float between 0 and 1 just like and "Alpha" value of a texture
+		float Alpha = PowerLevel / (float)MaxPowerLevel;
+
+		MatInst->SetScalarParameterValue("PowerLevelAlpha", Alpha);
+	}
+
+	DrawDebugString(GetWorld(), FVector(0, 0, 0), FString::FromInt(PowerLevel), this, FColor::White, 1.f, true);
 }
 
 // Called every frame

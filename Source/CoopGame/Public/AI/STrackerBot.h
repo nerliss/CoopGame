@@ -81,6 +81,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	USoundCue* ExplodeSound;
 
+	// The power boost of the bot - affects damage and color (range: 1 to 4)
+	int32 PowerLevel;
+
+	// Find nearby tracker bots and increase power based on amount of them
+	void OnCheckNearbyBots();
+
 public:	
 
 	// Called every frame
