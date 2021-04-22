@@ -148,7 +148,7 @@ void ASCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float Hea
 	{
 		// Death
 		bDied = true;
-		StopFire(); // explicitly stopping fire - in case we die while shooting
+		StopFire(); // explicitly stopping fire - in case we die while 
 
 		GetMovementComponent()->StopMovementImmediately();
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);

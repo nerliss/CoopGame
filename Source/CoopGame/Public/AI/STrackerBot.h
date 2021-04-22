@@ -8,6 +8,7 @@
 
 class USHealthComponent;
 class USphereComponent;
+class USoundCue;
 
 UCLASS()
 class COOPGAME_API ASTrackerBot : public APawn
@@ -39,13 +40,13 @@ protected:
 	// Next point in navigation path
 	FVector NextPathPoint;
 
-	UPROPERTY(EditDefaultsOnly, Category = "TracerBot")
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float MovementForce;
 
-	UPROPERTY(EditDefaultsOnly, Category = "TracerBot")
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	bool bUseVelocityChange;
 
-	UPROPERTY(EditDefaultsOnly, Category = "TracerBot")
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float RequiredDistanceToTarget;
 
 	// Dynamic material to pulse on damage taken
@@ -53,22 +54,32 @@ protected:
 
 	void SelfDestruct();
 
-	UPROPERTY(EditDefaultsOnly, Category = "TracerBot")
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	UParticleSystem* ExplosionFX;
 
 	bool bExploded;
 
 	bool bStartetSelfDestruction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "TracerBot")
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float ExplosionRadius;
 
-	UPROPERTY(EditDefaultsOnly, Category = "TracerBot")
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
 	float ExplosionDamage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	float SelfDamageInterval;
 
 	FTimerHandle TimerHandle_SelfDamage;
 
 	void DamageSelf();
+
+	// Sounds
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	USoundCue* SelfDestructSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TrackerBot")
+	USoundCue* ExplodeSound;
 
 public:	
 
