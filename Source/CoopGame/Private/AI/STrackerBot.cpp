@@ -129,10 +129,10 @@ void ASTrackerBot::SelfDestruct()
 		// Apply damage
 		UGameplayStatics::ApplyRadialDamage(this, ActualDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoredActors, this, GetInstigatorController(), true);
 
-		DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 12, FColor::Red, false, 2.f, 0, 1);
+		DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 12, FColor::Red, false, 2.f, 0, 1.f);
 
 		// Delete actor 
-		SetLifeSpan(2.0);
+		SetLifeSpan(1.5f);
 	}
 }
 
