@@ -24,6 +24,7 @@ protected:
 	float PowerupInterval;
 
 	/* Total times we apply the powerup effect */
+	UPROPERTY(EditDefaultsOnly, Category = "Powerups")
 	int32 TotalNumOfTicks;
 
 	/* Total number of ticks applied */
@@ -37,10 +38,10 @@ protected:
 public:	
 
 	/* Does spawn-like logic */
-	void ActivatePowerup();
+	void ActivatePowerup(AActor* ActiveFor);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Powerups")
-	void OnActivated();
+	void OnActivated(AActor* ActiveFor);
 
 	/* Calls every time powerup ticks */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Powerups")
