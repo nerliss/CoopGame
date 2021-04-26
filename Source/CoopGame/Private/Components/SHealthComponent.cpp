@@ -60,6 +60,20 @@ void USHealthComponent::ClientOnHealthChanged_Implementation(USHealthComponent* 
 	OnHealthChanged.Broadcast(this, SHealth, HealthDelta, DamageType, InstigatedBy, DamageCauser);
 }
 
+void USHealthComponent::Heal(float HealAmount)
+{
+	if (HealAmount <= 0.f || Health <= 0.f)
+	{
+		return;
+	}
+
+	Health = FMath::Clamp(Health + HealAmount, 0.f, DefaultHealth);
+
+	UE_LOG(LogTemp, Log, TEXT("Health changed: %s (+%s)"), *FString::SanitizeFloat(Health), *FString::SanitizeFloat(HealAmount)); // log
+
+	OnHealthChanged.Broadcast(this, Health, -HealAmount, nullptr, nullptr, nullptr);
+}
+
 // Replication rule for Health variable
 void USHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
