@@ -211,7 +211,7 @@ void ASTrackerBot::Tick(float DeltaTime)
 		{
 			NextPathPoint = GetNextPathPoint();
 
-			DrawDebugString(GetWorld(), GetActorLocation(), "Target Reached!");
+			//DrawDebugString(GetWorld(), GetActorLocation(), "Target Reached!", this, FColor::White, 1.f);
 		}
 		// ...else we keep adding force until we are 
 		else
