@@ -60,6 +60,11 @@ void USHealthComponent::ClientOnHealthChanged_Implementation(USHealthComponent* 
 	OnHealthChanged.Broadcast(this, SHealth, HealthDelta, DamageType, InstigatedBy, DamageCauser);
 }
 
+float USHealthComponent::GetHealth() const
+{
+	return Health;
+}
+
 void USHealthComponent::Heal(float HealAmount)
 {
 	if (HealAmount <= 0.f || Health <= 0.f)
@@ -81,3 +86,4 @@ void USHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 	DOREPLIFETIME(USHealthComponent, Health);
 }
+

@@ -19,6 +19,8 @@ protected:
 
 	FTimerHandle TimerHandle_BotSpawner;
 
+	FTimerHandle TimerHande_NextWaveStart;
+
 	// Bots to spawn in current wave
 	int32 NumOfBotsToSpawn;
 
@@ -42,8 +44,11 @@ protected:
 	// Set timer for next wave
 	void PrepareForNextWave();
 
+	void CheckWaveState();
+
 public:
 
 	virtual void StartPlay() override;
 
+	virtual void Tick(float DeltaSeconds) override;
 };
