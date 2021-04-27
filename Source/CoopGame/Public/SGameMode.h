@@ -6,12 +6,44 @@
 #include "GameFramework/GameModeBase.h"
 #include "SGameMode.generated.h"
 
-/**
- * 
- */
+
 UCLASS()
 class COOPGAME_API ASGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 	
+public:
+	ASGameMode();
+
+protected:
+
+	FTimerHandle TimerHandle_BotSpawner;
+
+	// Bots to spawn in current wave
+	int32 NumOfBotsToSpawn;
+
+	int32 WaveCount;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Gamemode")
+	float TimeBetweenWaves;
+
+	// Hook for BP to spawn a single bot
+	UFUNCTION(BlueprintImplementableEvent, Category = "Gamemode")
+	void SpawnNewBot();
+
+	void SpawnBotTimerElapsed();
+
+	// Start spawning bots
+	void StartWave();
+
+	// Stop spawning bots
+	void EndWave();
+
+	// Set timer for next wave
+	void PrepareForNextWave();
+
+public:
+
+	virtual void StartPlay() override;
+
 };
