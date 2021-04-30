@@ -32,7 +32,7 @@ ASCharacter::ASCharacter()
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
 
-	ZoomedFOV = 65.f;
+	ZoomedFOV = 75.f;
 	ZoomInterpSpeed = 20.f;
 
 	WeaponAttachSocketName = "WeaponSocket";
