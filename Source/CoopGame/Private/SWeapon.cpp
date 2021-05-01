@@ -31,7 +31,7 @@ ASWeapon::ASWeapon()
 	TracerTargetName = "Target";
 
 	BaseDamage = 20.f;
-
+	BulletSpread = 2.f;
 	FireRate = 600;
 
 	// Set the replication of the rifle to true to properly synchronize between server and client
@@ -66,6 +66,10 @@ void ASWeapon::Fire()
 		MyOwner->GetActorEyesViewPoint(EyeLocation, EyeRotation);
 
 		FVector ShotDirection = EyeRotation.Vector();
+
+		// Bullet spread
+		float HalfRad = FMath::DegreesToRadians(BulletSpread);
+		ShotDirection = FMath::VRandCone(ShotDirection, HalfRad, HalfRad);
 
 		FVector TraceEnd = EyeLocation + (ShotDirection * 11000);
 
