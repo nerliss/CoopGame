@@ -37,6 +37,8 @@ protected:
 
 	FVector GetNextPathPoint();
 
+	void RefreshPath();
+
 	// Next point in navigation path
 	FVector NextPathPoint;
 
@@ -71,6 +73,9 @@ protected:
 	float SelfDamageInterval;
 
 	FTimerHandle TimerHandle_SelfDamage;
+
+	// For unstuck purposes
+	FTimerHandle TimerHandle_RefreshPath;
 
 	void DamageSelf();
 
